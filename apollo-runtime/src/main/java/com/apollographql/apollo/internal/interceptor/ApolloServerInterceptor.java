@@ -123,27 +123,22 @@ public final class ApolloServerInterceptor implements ApolloInterceptor {
     }
 
     if (httpCall.isCanceled() || disposed) {
-      httpCallRef.compareAndSet(httpCall, null);
       return;
     }
 
     httpCall.enqueue(new Callback() {
       @Override
       public void onFailure(@NotNull Call call, @NotNull IOException e) {
-        if (httpCallRef.compareAndSet(call, null)) {
-          if (disposed) return;
-          logger.e(e, "Failed to execute http call for operation %s", request.operation.name().name());
-          callBack.onFailure(new ApolloNetworkException("Failed to execute http call", e));
-        }
+        if (call.isCanceled() || disposed) return;
+        logger.e(e, "Failed to execute http call for operation %s", request.operation.name().name());
+        callBack.onFailure(new ApolloNetworkException("Failed to execute http call", e));
       }
 
       @Override
       public void onResponse(@NotNull Call call, @NotNull Response response) {
-        if (httpCallRef.compareAndSet(call, null)) {
-          if (disposed) return;
-          callBack.onResponse(new ApolloInterceptor.InterceptorResponse(response));
-          callBack.onCompleted();
-        }
+        if (call.isCanceled() || disposed) return;
+        callBack.onResponse(new ApolloInterceptor.InterceptorResponse(response));
+        callBack.onCompleted();
       }
     });
   }

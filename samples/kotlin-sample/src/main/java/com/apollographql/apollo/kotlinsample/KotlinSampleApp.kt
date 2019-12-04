@@ -12,7 +12,9 @@ import com.apollographql.apollo.kotlinsample.data.ApolloCallbackService
 import com.apollographql.apollo.kotlinsample.data.ApolloCoroutinesService
 import com.apollographql.apollo.kotlinsample.data.ApolloRxService
 import com.apollographql.apollo.kotlinsample.data.GitHubDataSource
-import okhttp3.OkHttpClient
+import okhttp3.*
+import okio.Timeout
+
 
 @Suppress("unused")
 class KotlinSampleApp : Application() {
@@ -47,8 +49,44 @@ class KotlinSampleApp : Application() {
     ApolloClient.builder()
         .serverUrl(baseUrl)
         .normalizedCache(sqlNormalizedCacheFactory, cacheKeyResolver)
-        .okHttpClient(okHttpClient)
+        .callFactory {
+          DecoratedCall(okHttpClient.newCall(it))
+        }
         .build()
+  }
+
+  class DecoratedCall(val call: Call) : Call {
+    override fun enqueue(responseCallback: Callback) {
+      call.enqueue(responseCallback)
+    }
+
+    override fun isExecuted(): Boolean {
+      return call.isExecuted
+    }
+
+    override fun timeout(): Timeout {
+      return call.timeout()
+    }
+
+    override fun clone(): Call {
+      return call.clone()
+    }
+
+    override fun isCanceled(): Boolean {
+      return call.isCanceled
+    }
+
+    override fun cancel() {
+      call.cancel()
+    }
+
+    override fun request(): Request {
+      return call.request()
+    }
+
+    override fun execute(): Response {
+      return call.execute()
+    }
   }
 
   /**
